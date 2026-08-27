@@ -61,6 +61,10 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[o.strip() for o in settings.cors_origins if o.strip()],
+    # Matched in addition to the exact list, for hosts that mint a new URL per
+    # deployment (Vercel preview builds). See core/config.py for why this must
+    # be anchored to your own project rather than all of *.vercel.app.
+    allow_origin_regex=settings.cors_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

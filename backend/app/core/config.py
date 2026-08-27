@@ -73,6 +73,26 @@ class Settings:
         "CORS_ORIGINS",
         "http://localhost:3000,http://localhost:3100,http://127.0.0.1:3000,http://127.0.0.1:3100",
     ).split(",")
+
+    # An exact-match list is unworkable against hosts that mint a new URL per
+    # deployment -- Vercel gives every push its own
+    # <project>-<hash>-<scope>.vercel.app, so a hardcoded list breaks on the
+    # next commit. CORS_ORIGIN_REGEX is matched against the Origin header in
+    # addition to the list above.
+    #
+    # SCOPE IT TO YOUR PROJECT. Because credentials are allowed, a pattern like
+    # ^https://.*\.vercel\.app$ would let ANY site hosted on vercel.app make
+    # authenticated requests against this API on behalf of a logged-in user.
+    # Anchor it to your own project AND scope, e.g. for project "orbit-web"
+    # under the "ohi-me" scope:
+    #
+    #   ^https://orbit-web(-[a-z0-9-]+)?-ohi-me\.vercel\.app$
+    #
+    # Note the hyphen inside the character class. Vercel's branch URLs embed
+    # the branch name, so main deploys to orbit-web-git-main-ohi-me.vercel.app
+    # -- a pattern of [a-z0-9]+ without the hyphen silently fails to match it,
+    # which looks exactly like the CORS setting having no effect at all.
+    cors_origin_regex: str | None = os.environ.get("CORS_ORIGIN_REGEX") or None
     max_concurrent_runs: int = int(os.environ.get("MAX_CONCURRENT_RUNS", "2"))
 
 

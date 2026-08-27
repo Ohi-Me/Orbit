@@ -12,15 +12,14 @@ security properties that matter: run ownership and the approval gate.
 from __future__ import annotations
 
 import os
-import tempfile
 
 import pytest
 
-# Point the app at a throwaway database BEFORE anything imports the engine.
-_TMP_DB = os.path.join(tempfile.mkdtemp(), "test.db")
-os.environ["DATABASE_URL"] = f"sqlite:///{_TMP_DB}"
-os.environ["ALLOW_MODEL_DOWNLOAD"] = "0"  # keep tests offline and fast
-
+# Database isolation and offline mode are configured in conftest.py, which
+# pytest loads before any test module. Setting them here would be too late:
+# app.core.db binds its engine at import time, so if another test module has
+# already imported it the suite would run against the real development
+# database. See conftest.py for the full explanation.
 from fastapi.testclient import TestClient  # noqa: E402
 
 from app.agents.fundamental_rag import (  # noqa: E402
@@ -333,3 +332,71 @@ class TestApi:
         )
         assert r.status_code == 409
         assert "approved" in r.json()["detail"]
+
+
+# ---------------------------------------------------------------------------
+# CORS
+# ---------------------------------------------------------------------------
+class TestCorsOriginRegex:
+    """Vercel mints a new URL per deployment, so an exact-match origin list
+    breaks on the next push. These tests pin the regex behaviour -- including
+    the hyphen inside the character class, which is easy to omit and fails in a
+    way that looks exactly like the setting having no effect."""
+
+    @staticmethod
+    def _client(regex: str):
+        """Rebuild the app with a given CORS regex.
+
+        Settings reads os.environ into CLASS attributes, which are bound when
+        app.core.config is first imported -- so clearing the lru_cache alone
+        does nothing and the config module itself has to be reloaded, then
+        app.main after it so it rebinds the new symbols.
+        """
+        import importlib
+
+        os.environ["CORS_ORIGIN_REGEX"] = regex
+        config_mod = importlib.reload(importlib.import_module("app.core.config"))
+        config_mod.get_settings.cache_clear()
+        main_mod = importlib.reload(importlib.import_module("app.main"))
+        return TestClient(main_mod.app)
+
+    PATTERN = r"^https://orbit-web(-[a-z0-9-]+)?-ohi-me\.vercel\.app$"
+
+    @pytest.mark.parametrize(
+        "origin,allowed",
+        [
+            ("https://orbit-web-git-main-ohi-me.vercel.app", True),   # branch URL
+            ("https://orbit-web-a1b2c3d4-ohi-me.vercel.app", True),   # preview deploy
+            ("https://orbit-web-ohi-me.vercel.app", True),            # production alias
+            ("https://evil-site-attacker.vercel.app", False),         # another vercel site
+            ("https://orbit-web-git-main-someone.vercel.app", False), # different scope
+            ("https://totally-unrelated.com", False),                 # unrelated
+        ],
+    )
+    def test_origin_allowed_only_for_own_project(self, origin, allowed):
+        with self._client(self.PATTERN) as c:
+            header = c.get("/api/health", headers={"Origin": origin}).headers.get(
+                "access-control-allow-origin"
+            )
+            assert bool(header) is allowed
+
+    def test_preflight_succeeds_for_branch_url(self):
+        with self._client(self.PATTERN) as c:
+            r = c.options(
+                "/api/health",
+                headers={
+                    "Origin": "https://orbit-web-git-main-ohi-me.vercel.app",
+                    "Access-Control-Request-Method": "GET",
+                },
+            )
+            assert r.status_code == 200
+            assert r.headers.get("access-control-allow-origin")
+
+    def test_branch_url_needs_hyphen_in_class(self):
+        """A pattern without the hyphen silently rejects every branch URL."""
+        with self._client(r"^https://orbit-web(-[a-z0-9]+)?-ohi-me\.vercel\.app$") as c:
+            header = c.get(
+                "/api/health",
+                headers={"Origin": "https://orbit-web-git-main-ohi-me.vercel.app"},
+            ).headers.get("access-control-allow-origin")
+            assert not header

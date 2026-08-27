@@ -24,13 +24,13 @@ jobs:
           pip install torch --index-url https://download.pytorch.org/whl/cpu
           pip install -r requirements.txt
 
+      # No env vars needed: tests/conftest.py forces an isolated database and
+      # disables model downloads, live data and tracking before any test module
+      # is imported. The suite must pass on a machine with no network and no
+      # credentials, and configuring that here instead would let it silently
+      # depend on the runner's environment.
       - name: Run tests
         working-directory: backend
-        env:
-          # Keep CI hermetic: no model downloads, no external data calls.
-          ALLOW_MODEL_DOWNLOAD: "0"
-          ALLOW_LIVE_MARKET_DATA: "0"
-          ENABLE_MLFLOW: "0"
         run: pytest -q --maxfail=1
 
   frontend:
