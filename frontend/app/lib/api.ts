@@ -69,8 +69,30 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   try {
     res = await fetch(`${API_BASE}${path}`, { ...init, headers });
   } catch {
-    // A network failure here almost always means the backend is not running.
-    // Saying so is more useful than surfacing a bare TypeError.
+    // A network failure here has two very different causes, and the wrong
+    // message sends you looking in the wrong place for an hour.
+    //
+    // NEXT_PUBLIC_* values are inlined by Next at BUILD time, not read at
+    // runtime. So a deployed site built without NEXT_PUBLIC_API_BASE ships
+    // the localhost default baked into its JavaScript, and every visitor's
+    // browser then tries to reach a backend on their OWN machine. The symptom
+    // is identical to "the server isn't running", but the fix is completely
+    // different: set the variable and REBUILD.
+    const pageIsLocal =
+      typeof window !== "undefined" &&
+      /^(localhost|127\.0\.0\.1|\[::1\])$/i.test(window.location.hostname);
+    const apiIsLocal = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:|\/|$)/i.test(API_BASE);
+
+    if (!pageIsLocal && apiIsLocal) {
+      throw new ApiError(
+        0,
+        `This site is trying to reach ${API_BASE} — a backend on your own computer, ` +
+          `not a deployed one. It was built without NEXT_PUBLIC_API_BASE set. ` +
+          `Next inlines NEXT_PUBLIC_* at build time, so set it to the API's public ` +
+          `URL and rebuild — changing it after the build has no effect.`
+      );
+    }
+
     throw new ApiError(
       0,
       `Cannot reach the backend at ${API_BASE}. Start it with: uvicorn app.main:app --port 8000`
