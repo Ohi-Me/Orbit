@@ -1,0 +1,68 @@
+# ---------------------------------------------------------------------------
+# Deployment requirements (Render, Fly, Railway, any small container).
+#
+# WHY THIS FILE EXISTS, SEPARATE FROM requirements.txt
+# requirements.txt installs torch, transformers, sentence-transformers and
+# mlflow. Together those are several GB and will exhaust the memory and disk of
+# a small instance during the build. They are genuinely optional: the platform
+# probes for each at runtime and falls back to a documented, labelled
+# substitute, then reports "fidelity: degraded" at /api/health so nothing is
+# silently misrepresented.
+#
+# WHAT YOU LOSE WITH THIS FILE
+#   deep learning        LSTM and Transformer are skipped; logistic regression
+#                        and XGBoost still train and compete
+#   neural embeddings    RAG retrieval falls back to BM25 (lexical only)
+#   cross-encoder rerank unavailable
+#   FinBERT sentiment    falls back to the labelled keyword baseline
+#   MLflow tracking      no-ops cleanly
+#
+# WHAT STILL WORKS
+#   The whole pipeline: real data ingestion, point-in-time features, purged
+#   walk-forward validation, HAC-corrected inference, cost-aware backtesting,
+#   risk decomposition, portfolio construction, the critic and the approval
+#   gate. Verified by importing the app with every heavy package blocked.
+#
+# To deploy at full fidelity, use requirements.txt on an instance with at least
+# 4 GB of RAM and 10 GB of disk, and set a persistent HF_HOME cache.
+# ---------------------------------------------------------------------------
+
+# --- web ---
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+python-multipart==0.0.9
+python-dotenv==1.0.1
+httpx==0.28.1
+
+# --- data / storage ---
+sqlalchemy>=2.0.30
+pydantic[email]==2.8.2
+psycopg2-binary>=2.9.9
+
+# --- auth ---
+bcrypt>=4.1.0
+python-jose[cryptography]>=3.3.0
+
+# --- scientific stack (all have manylinux wheels for Python 3.11) ---
+pandas==2.2.2
+numpy==1.26.4
+scipy==1.13.1
+scikit-learn==1.5.1
+statsmodels>=0.14.2
+# xgboost 2.1+ declares nvidia-nccl-cu12 on Linux x86_64 for its distributed GPU
+# path -- roughly 200 MB of CUDA libraries that are dead weight on a CPU
+# instance and enough to fail a small build. 2.0.3 is the last release without
+# it and exposes an identical API for everything this project uses.
+xgboost==2.0.3
+
+# --- market / reference data ---
+yfinance>=0.2.40
+
+# --- orchestration ---
+langgraph>=0.2.0
+
+# --- observability ---
+structlog>=24.1.0
+
+# --- optional LLM client (small, no model weights) ---
+anthropic==0.34.2

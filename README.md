@@ -369,6 +369,64 @@ pytest -q
 
 ---
 
+## Deployment
+
+A `render.yaml` blueprint is included (Postgres + API + frontend). Two things
+decide whether a first deploy succeeds.
+
+### 1. Pin Python to 3.11
+
+Render defaults to Python 3.14. `pandas` and `numpy` publish no wheels for it,
+so pip falls back to compiling pandas from source and the Cython build fails
+partway through. The repo pins 3.11 via `.python-version`.
+
+> Render does **not** read `runtime.txt`. Only the `PYTHON_VERSION` environment
+> variable and a `.python-version` file are honoured, and the env var takes
+> precedence — so a stale `PYTHON_VERSION` in the dashboard will override the
+> file.
+
+### 2. Use the lean requirements on small instances
+
+`backend/requirements-render.txt` omits PyTorch, Transformers,
+sentence-transformers and MLflow. Together those are several GB — enough to
+exhaust the memory and disk of a free instance during the build.
+
+```bash
+pip install -r requirements-render.txt
+```
+
+Nothing breaks. Each is probed at runtime and falls back to a labelled
+substitute, and `/api/health` reports `"fidelity": "degraded"` naming exactly
+what is unavailable:
+
+| Absent | Consequence | Still works |
+| ------ | ----------- | ----------- |
+| PyTorch | LSTM and Transformer skipped | Logistic Regression and XGBoost still train and compete |
+| sentence-transformers | no dense retrieval or reranking | BM25 lexical retrieval |
+| Transformers | no FinBERT | labelled keyword sentiment baseline |
+| MLflow | no experiment tracking | metrics still persisted to the database |
+
+The full pipeline — data ingestion, point-in-time features, purged
+walk-forward validation, HAC-corrected inference, cost-aware backtesting, risk,
+portfolio construction, the critic and the approval gate — runs unchanged. This
+is verified by importing the app and running the complete factor → model →
+backtest path with every heavy package blocked.
+
+For full fidelity, use `requirements.txt` on an instance with at least 4 GB RAM
+and 10 GB disk, and mount a persistent `HF_HOME` so model weights survive
+deploys.
+
+### Required environment
+
+| Variable | Why |
+| -------- | --- |
+| `DATABASE_URL` | SQLite sits on ephemeral disk and is wiped on every deploy |
+| `JWT_SECRET` | `/api/health` warns while this is the development default |
+| `CORS_ORIGINS` | must point at the deployed frontend URL |
+| `SEC_USER_AGENT` | SEC blocks generic user agents; use a real contact |
+
+---
+
 ## Repository Structure
 
 ```text

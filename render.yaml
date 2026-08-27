@@ -1,0 +1,62 @@
+# Render Blueprint for Orbit.
+#
+# PYTHON VERSION: pinned by the .python-version file (3.11). Render's default is
+# now 3.14, and pandas/numpy publish no wheels for it — pip then tries to
+# compile pandas from source and the Cython build fails. Note that Render does
+# NOT read runtime.txt; only PYTHON_VERSION (env var) and .python-version work,
+# and the env var wins. If a stale PYTHON_VERSION is set in the dashboard,
+# delete it or this file's pin will be ignored.
+#
+# DEPENDENCIES: the build uses requirements-render.txt, which omits torch,
+# transformers, sentence-transformers and mlflow. See that file for exactly
+# which capabilities that trades away and why the trade is safe.
+
+databases:
+  - name: orbit-db
+    databaseName: orbit
+    user: orbit
+    plan: free
+
+services:
+  - type: web
+    name: orbit-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install --upgrade pip && pip install -r requirements-render.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      # SQLite lives on ephemeral disk and is wiped on every deploy, so a real
+      # database is not optional for anything you want to keep.
+      - key: DATABASE_URL
+        fromDatabase:
+          name: orbit-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: LOG_FORMAT
+        value: json
+      - key: CORS_ORIGINS
+        sync: false          # set to your deployed frontend URL
+      - key: SEC_USER_AGENT
+        sync: false          # SEC blocks generic agents: "orbit you@example.com"
+      - key: ALLOW_MODEL_DOWNLOAD
+        value: "0"           # no transformers installed in the lean build
+      - key: ENABLE_MLFLOW
+        value: "0"           # no mlflow installed in the lean build
+      - key: MAX_CONCURRENT_RUNS
+        value: "1"           # a free instance cannot run two pipelines at once
+      - key: ANTHROPIC_API_KEY
+        sync: false          # optional; enables the LLM planner
+
+  - type: web
+    name: orbit-web
+    runtime: node
+    plan: free
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NEXT_PUBLIC_API_BASE
+        sync: false          # set to the orbit-api URL
