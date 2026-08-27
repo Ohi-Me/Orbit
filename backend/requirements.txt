@@ -1,0 +1,47 @@
+# --- web ---
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+python-multipart==0.0.9
+python-dotenv==1.0.1
+httpx==0.28.1
+
+# --- data / storage ---
+sqlalchemy>=2.0.30
+pydantic==2.8.2
+pydantic[email]
+psycopg2-binary>=2.9.9 ; sys_platform != "win32"
+
+# --- auth ---
+bcrypt>=4.1.0
+python-jose[cryptography]>=3.3.0
+
+# --- scientific stack ---
+pandas==2.2.2
+numpy==1.26.4
+scipy==1.13.1
+scikit-learn==1.5.1
+statsmodels>=0.14.2
+xgboost==2.1.1
+
+# --- deep learning ---
+torch>=2.2.0
+
+# --- NLP / retrieval ---
+transformers>=4.40.0
+sentence-transformers>=3.0.0
+
+# --- market / reference data ---
+yfinance>=0.2.40
+
+# --- orchestration ---
+langgraph>=0.2.0
+
+# --- observability ---
+mlflow>=2.14.0
+structlog>=24.1.0
+
+# --- LLM (optional at runtime) ---
+anthropic==0.34.2
+
+# --- test ---
+pytest>=8.0

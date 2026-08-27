@@ -1,0 +1,59 @@
+# Orbit — local stack.
+#
+# Postgres is included because that is the deployment target; the application
+# runs identically on SQLite when DATABASE_URL is unset, which is why the
+# backend does not hard-depend on it in development.
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: orbit
+      POSTGRES_PASSWORD: orbit
+      POSTGRES_DB: orbit
+    ports:
+      - "5432:5432"
+    volumes:
+      - orbit-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U orbit"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg2://orbit:orbit@db:5432/orbit
+      CORS_ORIGINS: http://localhost:3000
+      LOG_FORMAT: json
+      # Set a real secret before exposing this anywhere.
+      JWT_SECRET: ${JWT_SECRET:-dev-only-insecure-secret-change-me}
+      SEC_USER_AGENT: ${SEC_USER_AGENT:-orbit-research contact@example.com}
+      # Optional — enables the LLM planner and RAG synthesis.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      # Model weights are downloaded on first use and cached in the volume below.
+      HF_HOME: /models
+    volumes:
+      - orbit-models:/models
+      - orbit-mlruns:/app/mlruns
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_BASE: http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  orbit-pgdata:
+  orbit-models:
+  orbit-mlruns:

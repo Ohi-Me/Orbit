@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+
+# ML artefacts
+mlruns/
+artifacts/
+*.pkl
+_scratch_*
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+npm-debug.log*
+.turbo/
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Editors / OS
+.DS_Store
+.idea/
+.vscode/
+Thumbs.db
+
+# Logs
+*.log
