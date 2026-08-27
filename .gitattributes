@@ -1,0 +1,27 @@
+# Normalise line endings so the repo is identical on Windows, macOS and Linux.
+# Without this, git rewrites CRLF on checkout and every file shows as modified
+# when the project moves between platforms.
+* text=auto eol=lf
+
+# Windows-only scripts must keep CRLF or cmd.exe mis-parses them.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Binary assets: never touch.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.pkl binary
+*.db binary
+
+# Lockfiles are generated; collapse them in diffs and reviews.
+package-lock.json linguist-generated=true -diff
+
+# Keep GitHub's language stats meaningful.
+*.ipynb linguist-documentation
