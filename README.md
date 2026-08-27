@@ -436,5 +436,3 @@ These limitations are intentionally documented rather than hidden.
 Orbit is a quantitative research software project.
 
 It is **not investment advice, a broker, a trading system, or a guarantee of future investment performance**.
-
-See `docs/` for detailed methodology, architecture, API documentation, and reproducibility notes.
