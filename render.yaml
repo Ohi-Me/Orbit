@@ -58,5 +58,16 @@ services:
     buildCommand: npm ci && npm run build
     startCommand: npm run start
     envVars:
+      # Set this to the orbit-api URL BEFORE the first build. Next inlines
+      # NEXT_PUBLIC_* into the client bundle at build time, so a site built
+      # without it ships "http://localhost:8000" inside its JavaScript and
+      # every visitor's browser tries to reach a backend on their own machine.
+      # Changing this value later requires a manual redeploy with "Clear build
+      # cache", not just a restart.
       - key: NEXT_PUBLIC_API_BASE
-        sync: false          # set to the orbit-api URL
+        sync: false
+      # Alternative to the above: route /api through this Next server instead,
+      # which removes the cross-origin request entirely so the API never needs
+      # CORS_ORIGINS set. Also build-time -- see frontend/next.config.js.
+      # - key: API_PROXY_TARGET
+      #   sync: false

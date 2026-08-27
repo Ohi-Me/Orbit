@@ -13,8 +13,37 @@ import type {
   RunSummary,
 } from "./types";
 
-export const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE?.replace(/\/$/, "") || "http://localhost:8000";
+/**
+ * Where the API lives, resolved defensively.
+ *
+ * NEXT_PUBLIC_* is inlined at build time, so a deployed site built without
+ * NEXT_PUBLIC_API_BASE carries the localhost default inside its bundle and
+ * every visitor's browser tries to reach a backend on their own machine.
+ *
+ * When that mismatch is detected -- the page is served from a real host but
+ * the compiled-in API base points at localhost -- fall back to a same-origin
+ * relative base (""). The Next server's rewrite proxy (see next.config.js,
+ * API_PROXY_TARGET) then forwards /api/* to the real backend, which also
+ * removes the cross-origin request entirely.
+ *
+ * If no proxy is configured either, the request fails with a message naming
+ * both fixes rather than telling a deployed user to run uvicorn locally.
+ */
+function resolveApiBase(): string {
+  const configured = process.env.NEXT_PUBLIC_API_BASE?.replace(/\/$/, "") ?? "";
+
+  // On the server there is no page origin to compare against; the configured
+  // value (or the dev default) is all we have.
+  if (typeof window === "undefined") return configured || "http://localhost:8000";
+
+  const pageIsLocal = /^(localhost|127\.0\.0\.1|\[::1\])$/i.test(window.location.hostname);
+  const configuredIsLocal = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:|\/|$)/i.test(configured);
+
+  if (!pageIsLocal && (configuredIsLocal || configured === "")) return "";
+  return configured || "http://localhost:8000";
+}
+
+export const API_BASE = resolveApiBase();
 
 const TOKEN_KEY = "quant_platform_token";
 const USER_KEY = "quant_platform_user";
@@ -81,21 +110,32 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     const pageIsLocal =
       typeof window !== "undefined" &&
       /^(localhost|127\.0\.0\.1|\[::1\])$/i.test(window.location.hostname);
-    const apiIsLocal = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:|\/|$)/i.test(API_BASE);
 
-    if (!pageIsLocal && apiIsLocal) {
+    // API_BASE === "" means resolveApiBase() fell back to same-origin because
+    // the build had no usable API base. Reaching here means the Next server's
+    // proxy is not configured either, so name both fixes.
+    if (!pageIsLocal && API_BASE === "") {
       throw new ApiError(
         0,
-        `This site is trying to reach ${API_BASE} — a backend on your own computer, ` +
-          `not a deployed one. It was built without NEXT_PUBLIC_API_BASE set. ` +
-          `Next inlines NEXT_PUBLIC_* at build time, so set it to the API's public ` +
-          `URL and rebuild — changing it after the build has no effect.`
+        "This site has no backend configured. Set NEXT_PUBLIC_API_BASE to the " +
+          "API's public URL, or API_PROXY_TARGET to route /api through this " +
+          "server and skip CORS — then REBUILD. Both are read at build time, so " +
+          "setting either one without rebuilding has no effect."
+      );
+    }
+
+    if (!pageIsLocal) {
+      throw new ApiError(
+        0,
+        `Cannot reach the backend at ${API_BASE}. Check that the API is running ` +
+          `and that CORS_ORIGINS on it includes ${window.location.origin}.`
       );
     }
 
     throw new ApiError(
       0,
-      `Cannot reach the backend at ${API_BASE}. Start it with: uvicorn app.main:app --port 8000`
+      `Cannot reach the backend at ${API_BASE || window.location.origin}. ` +
+        "Start it with: uvicorn app.main:app --port 8000"
     );
   }
 
