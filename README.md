@@ -1,6 +1,19 @@
-# Orbit
+<p align="center">
+  <img src="assets/orbit-logo.svg" alt="Orbit" width="160" height="160">
+</p>
 
-### Evidence-Driven Quantitative Research Platform
+<h1 align="center">Orbit</h1>
+
+<p align="center"><strong>Evidence-Driven Quantitative Research Platform</strong></p>
+
+<p align="center">
+  <img alt="CI" src="https://github.com/Ohi-Me/Orbit/actions/workflows/ci.yml/badge.svg">
+  <img alt="Python" src="https://img.shields.io/badge/python-3.11-3776AB?logo=python&logoColor=white">
+  <img alt="Next.js" src="https://img.shields.io/badge/Next.js-14-000000?logo=nextdotjs&logoColor=white">
+  <img alt="License" src="https://img.shields.io/badge/license-MIT-blue">
+</p>
+
+---
 
 **Orbit turns financial research questions into reproducible, evidence-backed quantitative experiments.**
 

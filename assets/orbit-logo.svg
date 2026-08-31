@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="Orbit">
+  <title>Orbit</title>
+
+  <defs>
+    <!-- A single gradient axis reused across every element, so the mark reads
+         as one object rather than separately-coloured parts. -->
+    <linearGradient id="og" x1="0.05" y1="0.95" x2="0.95" y2="0.05">
+      <stop offset="0%" stop-color="#0FA2FF" />
+      <stop offset="50%" stop-color="#3C6BF2" />
+      <stop offset="100%" stop-color="#8B33EE" />
+    </linearGradient>
+
+    <!-- The half of the ring that passes BEHIND the planet is hidden by the
+         planet itself (drawn after). The half that passes IN FRONT is this
+         mask: everything below the ring's own major axis, in the ring's
+         rotated frame. That single line is what makes the orbit read as 3D
+         rather than as a flat ellipse laid over a circle. -->
+    <mask id="ringFront">
+      <rect x="-60" y="150" width="380" height="220" fill="#fff"
+            transform="rotate(-22 118 150)" />
+    </mask>
+  </defs>
+
+  <!-- ── Ascending candlesticks ────────────────────────────────────────── -->
+  <!-- Short wicks and wide bodies: at small sizes long thin wicks collapse
+       into noise and the group stops reading as a chart. -->
+  <g fill="url(#og)">
+    <rect x="24"  y="120" width="21" height="54" rx="7" />
+    <rect x="31.5" y="108" width="6" height="78" rx="3" />
+
+    <rect x="57"  y="98"  width="21" height="56" rx="7" />
+    <rect x="64.5" y="86" width="6" height="80" rx="3" />
+
+    <rect x="90"  y="74"  width="21" height="56" rx="7" />
+    <rect x="97.5" y="62" width="6" height="80" rx="3" />
+
+    <rect x="123" y="52"  width="21" height="54" rx="7" />
+    <rect x="130.5" y="40" width="6" height="78" rx="3" />
+
+    <rect x="156" y="30"  width="21" height="52" rx="7" />
+    <rect x="163.5" y="18" width="6" height="76" rx="3" />
+  </g>
+
+  <!-- ── Orbit ring: full ellipse (the far half) ──────────────────────── -->
+  <ellipse cx="118" cy="150" rx="116" ry="41"
+           transform="rotate(-22 118 150)"
+           fill="none" stroke="url(#og)" stroke-width="12" />
+
+  <!-- ── Planet: occludes the far half of the ring ─────────────────────── -->
+  <circle cx="118" cy="150" r="62" fill="url(#og)" />
+
+  <!-- ── Orbit ring: near half, drawn over the planet ──────────────────── -->
+  <g mask="url(#ringFront)">
+    <ellipse cx="118" cy="150" rx="116" ry="41"
+             transform="rotate(-22 118 150)"
+             fill="none" stroke="url(#og)" stroke-width="12" />
+  </g>
+
+  <!-- ── Satellite, sitting on the ring path ──────────────────────────── -->
+  <circle cx="214" cy="104" r="20" fill="url(#og)" />
+
+  <!-- ── Brain + circuit: the "applied ML" half of the mark ───────────── -->
+  <!-- Bounds matter here: stroke width and node radius both extend past the
+       path coordinates, so the group is kept inside x<=248 / y<=248 rather
+       than running to the viewBox edge, where it would be clipped. -->
+  <g stroke="#16205A" stroke-width="10" fill="none"
+     stroke-linecap="round" stroke-linejoin="round">
+    <path d="M180 238
+             c-13 0-22-9-22-19
+             c-9-3-13-11-13-19
+             c0-9 5-16 12-19
+             c0-10 9-18 20-18
+             c6-5 12-6 18-4
+             v79
+             c-5 2-10 1-15 0z" />
+    <path d="M176 172 c-8 1-12 7-11 13" />
+    <path d="M172 202 c-8 1-12 7-11 14" />
+
+    <path d="M196 174 h20" />
+    <path d="M196 202 h26" />
+    <path d="M196 230 h20" />
+    <path d="M216 174 l12 -12" />
+    <path d="M216 230 l12 12" />
+  </g>
+  <g fill="#16205A">
+    <circle cx="233" cy="157" r="9" />
+    <circle cx="228" cy="202" r="9" />
+    <circle cx="233" cy="247" r="9" />
+  </g>
+</svg>

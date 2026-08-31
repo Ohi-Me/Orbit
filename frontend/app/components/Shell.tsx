@@ -63,9 +63,20 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen">
       <header className="sticky top-0 z-20 border-b border-grid bg-paper/95 backdrop-blur">
         <div className="mx-auto flex max-w-[1400px] flex-wrap items-center gap-x-5 gap-y-2 px-5 py-2.5">
-          <Link href="/" className="leading-none">
+          <Link href="/" className="flex items-center gap-2 leading-none">
+            {/* Plain <img> rather than next/image: this is a static SVG, and
+                next/image cannot optimize vector output anyway. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/orbit-icon.svg"
+              alt=""
+              aria-hidden="true"
+              width={24}
+              height={24}
+              className="shrink-0"
+            />
             <span className="font-display text-base text-navy">Orbit</span>
-            <span className="ml-2 hidden text-[10px] uppercase tracking-wider text-muted sm:inline">
+            <span className="ml-1 hidden text-[10px] uppercase tracking-wider text-muted sm:inline">
               applied ML · financial data
             </span>
           </Link>
